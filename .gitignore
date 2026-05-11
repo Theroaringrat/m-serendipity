@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Vector DB (too large, regenerate with ingest.py)
+vector_db/
+
+# Scraped data (raw output, regenerate with deep_scraper.py)
+data/deep_scraped_professors.json
+data/survey_results.json
+
+# Experiment artifacts
+experiment_*.txt
+
+# Secrets
+.streamlit/secrets.toml

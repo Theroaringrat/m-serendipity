@@ -1,0 +1,282 @@
+[
+  {
+    "name": "Patricia Alves Oliveira",
+    "slug": "patricia-alves-oliveira",
+    "profile_url": "https://robotics.umich.edu/people/faculty/patricia-alves-oliveira/",
+    "lab_url": "https://www.robotdesign.studio",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Cameron Aubin",
+    "slug": "cameron-aubin",
+    "profile_url": "https://robotics.umich.edu/people/faculty/cameron-aubin/",
+    "lab_url": "https://www.zoeticrobotics.com",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Kira Barton",
+    "slug": "kira-barton",
+    "profile_url": "https://robotics.umich.edu/people/faculty/kira-barton/",
+    "lab_url": "http://brg.engin.umich.edu/",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Dmitry Berenson",
+    "slug": "dmitry-berenson",
+    "profile_url": "https://robotics.umich.edu/people/faculty/dmitry-berenson/",
+    "lab_url": "https://arm.robotics.umich.edu",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Bernadette Bucher",
+    "slug": "bernadette-bucher",
+    "profile_url": "https://robotics.umich.edu/people/faculty/bernadette-bucher/",
+    "lab_url": "https://sites.google.com/umich.edu/mandmlab",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Steven Ceron",
+    "slug": "steven-ceron",
+    "profile_url": "https://robotics.umich.edu/people/faculty/steven-ceron/",
+    "lab_url": "https://samlab.robotics.umich.edu",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Cynthia Chestek",
+    "slug": "cynthia-chestek",
+    "profile_url": "https://robotics.umich.edu/people/faculty/cynthia-chestek/",
+    "lab_url": "http://chestekresearch.engin.umich.edu/",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Jason Corso",
+    "slug": "jason-corso",
+    "profile_url": "https://robotics.umich.edu/people/faculty/jason-corso/",
+    "lab_url": "http://web.eecs.umich.edu/~jjcorso/",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Yanran Ding",
+    "slug": "yanran-ding",
+    "profile_url": "https://robotics.umich.edu/people/faculty/yanran-ding/",
+    "lab_url": "https://sites.google.com/umich.edu/arcad-lab/home",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Mark Draelos",
+    "slug": "mark-draelos",
+    "profile_url": "https://robotics.umich.edu/people/faculty/mark-draelos/",
+    "lab_url": "https://medical.robotics.umich.edu",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Xiaoxiao Du",
+    "slug": "xiaoxiao-du",
+    "profile_url": "https://robotics.umich.edu/people/faculty/xiaoxiao-du/",
+    "lab_url": "http://xiaoxiaodu.net/",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Nima Fazeli",
+    "slug": "nima-fazeli",
+    "profile_url": "https://robotics.umich.edu/people/faculty/nima-fazeli/",
+    "lab_url": "https://www.mmintlab.com/",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Greg Formosa",
+    "slug": "greg-formosa",
+    "profile_url": "https://robotics.umich.edu/people/faculty/greg-formosa/",
+    "lab_url": null,
+    "scrape_status": "no_lab_url",
+    "last_scraped": null
+  },
+  {
+    "name": "Peter Gaskell",
+    "slug": "peter-gaskell",
+    "profile_url": "https://robotics.umich.edu/people/faculty/peter-gaskell/",
+    "lab_url": null,
+    "scrape_status": "no_lab_url",
+    "last_scraped": null
+  },
+  {
+    "name": "Deanna Gates",
+    "slug": "deanna-gates",
+    "profile_url": "https://robotics.umich.edu/people/faculty/deanna-gates/",
+    "lab_url": "http://rehab-biomech-lab.kines.umich.edu/",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Maani Ghaffari",
+    "slug": "maani-ghaffari",
+    "profile_url": "https://robotics.umich.edu/people/faculty/maani-ghaffari/",
+    "lab_url": "http://curly.engin.umich.edu/",
+    "scrape_status": "js_rendered",
+    "last_scraped": null
+  },
+  {
+    "name": "Brent Gillespie",
+    "slug": "brent-gillespie",
+    "profile_url": "https://robotics.umich.edu/people/faculty/brent-gillespie/",
+    "lab_url": "https://haptixlab.engin.umich.edu",
+    "scrape_status": "blocked_403",
+    "last_scraped": null
+  },
+  {
+    "name": "Robert Gregg",
+    "slug": "robert-gregg",
+    "profile_url": "https://robotics.umich.edu/people/faculty/robert-gregg/",
+    "lab_url": "https://locolab.robotics.umich.edu",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Jessy Grizzle",
+    "slug": "jessy-grizzle",
+    "profile_url": "https://robotics.umich.edu/people/faculty/jessy-grizzle/",
+    "lab_url": "https://www.biped.solutions",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Xiaonan Sean Huang",
+    "slug": "xiaonan-sean-huang",
+    "profile_url": "https://robotics.umich.edu/people/faculty/xiaonan-sean-huang/",
+    "lab_url": "https://soft.robotics.umich.edu/",
+    "scrape_status": "blocked_403",
+    "last_scraped": null
+  },
+  {
+    "name": "Chad Jenkins",
+    "slug": "chad-jenkins",
+    "profile_url": "https://robotics.umich.edu/people/faculty/chad-jenkins/",
+    "lab_url": "https://progresslab.github.io/progress-web/index.html",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Tribhi Kathuria",
+    "slug": "tribhi-kathuria",
+    "profile_url": "https://robotics.umich.edu/people/faculty/tribhi-kathuria/",
+    "lab_url": "https://sites.google.com/umich.edu/tribhi-kathuria/home",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Christoforos Mavrogiannis",
+    "slug": "christoforos-mavrogiannis",
+    "profile_url": "https://robotics.umich.edu/people/faculty/christoforos-mavrogiannis/",
+    "lab_url": "https://fluentrobotics.com",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Talia Moore",
+    "slug": "talia-moore",
+    "profile_url": "https://robotics.umich.edu/people/faculty/talia-moore/",
+    "lab_url": "https://www.embirlab.com",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Necmiye Ozay",
+    "slug": "necmiye-ozay",
+    "profile_url": "https://robotics.umich.edu/people/faculty/necmiye-ozay/",
+    "lab_url": "https://web.eecs.umich.edu/~necmiye/group.html",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Dimitra Panagou",
+    "slug": "dimitra-panagou",
+    "profile_url": "https://robotics.umich.edu/people/faculty/dimitra-panagou/",
+    "lab_url": "https://dasc-lab.github.io/",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Lionel Robert",
+    "slug": "lionel-robert",
+    "profile_url": "https://robotics.umich.edu/people/faculty/lionel-robert/",
+    "lab_url": "https://sites.google.com/umich.edu/lionelrobert/",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Elliott Rouse",
+    "slug": "elliott-rouse",
+    "profile_url": "https://robotics.umich.edu/people/faculty/elliott-rouse/",
+    "lab_url": "https://neurobionics.engin.umich.edu/",
+    "scrape_status": "blocked_403",
+    "last_scraped": null
+  },
+  {
+    "name": "Katie Skinner",
+    "slug": "katie-skinner",
+    "profile_url": "https://robotics.umich.edu/people/faculty/katie-skinner/",
+    "lab_url": "https://fieldrobotics.engin.umich.edu/",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Leia Stirling",
+    "slug": "leia-stirling",
+    "profile_url": "https://robotics.umich.edu/people/faculty/leia-stirling/",
+    "lab_url": "https://stirling.engin.umich.edu",
+    "scrape_status": "blocked_403",
+    "last_scraped": null
+  },
+  {
+    "name": "Yulun Tian",
+    "slug": "yulun-tian",
+    "profile_url": "https://robotics.umich.edu/people/faculty/yulun-tian/",
+    "lab_url": null,
+    "scrape_status": "no_lab_url",
+    "last_scraped": null
+  },
+  {
+    "name": "Dawn Tilbury",
+    "slug": "dawn-tilbury",
+    "profile_url": "https://robotics.umich.edu/people/faculty/dawn-tilbury/",
+    "lab_url": "http://tillab.engin.umich.edu/",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Ram Vasudevan",
+    "slug": "ram-vasudevan",
+    "profile_url": "https://robotics.umich.edu/people/faculty/ram-vasudevan/",
+    "lab_url": "http://www.roahmlab.com/",
+    "scrape_status": "ok",
+    "last_scraped": null
+  },
+  {
+    "name": "Xi Jessie Yang",
+    "slug": "xi-jessie-yang",
+    "profile_url": "https://robotics.umich.edu/people/faculty/xi-jessie-yang/",
+    "lab_url": "http://icrl.engin.umich.edu",
+    "scrape_status": "js_rendered",
+    "last_scraped": null
+  },
+  {
+    "name": "Derrick Yeo",
+    "slug": "derrick-yeo",
+    "profile_url": "https://robotics.umich.edu/people/faculty/derrick-yeo/",
+    "lab_url": null,
+    "scrape_status": "no_lab_url",
+    "last_scraped": null
+  }
+]
