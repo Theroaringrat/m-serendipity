@@ -19,6 +19,12 @@ from crawl4ai import AsyncWebCrawler
 INDEX_FILE  = "data/professors_index.json"
 OUTPUT_FILE = "data/deep_scraped_professors.json"
 
+CONTENT_CAPS = {
+    "home":     6000,
+    "research": 10000,
+    # people / join / teaching 不截断
+}
+
 # 关键词：link text 或 URL path 中出现即视为目标页
 TARGET_KEYWORDS = {
     "research": ["research", "project", "about"],
@@ -136,6 +142,11 @@ async def scrape_page(crawler, url, page_type):
         print(f"    [SKIP] 内容过少 ({len(content)} chars): {url}")
         return None
 
+    cap = CONTENT_CAPS.get(page_type)
+    if cap and len(content) > cap:
+        content = content[:cap]
+        print(f"    [CAP] {page_type} 截断至 {cap} chars: {url}")
+
     title = (result.metadata or {}).get("title", url)
 
     return {
@@ -158,6 +169,10 @@ async def scrape_lab_site(crawler, lab_url):
 
     # 主页
     content = clean_markdown(get_markdown(result))
+    cap = CONTENT_CAPS.get("home")
+    if cap and len(content) > cap:
+        content = content[:cap]
+        print(f"    [CAP] home 截断至 {cap} chars: {lab_url}")
     if len(content) >= MIN_CONTENT_CHARS:
         title = (result.metadata or {}).get("title", lab_url)
         pages.append({

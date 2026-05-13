@@ -39,7 +39,17 @@ def get_recommendations(student_input: str):
     embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
     vectorstore = Chroma(persist_directory=DB_DIR, embedding_function=embeddings)
 
-    docs = vectorstore.similarity_search(student_input, k=3)
+    raw_docs = vectorstore.similarity_search(student_input, k=12)
+
+    seen_names = set()
+    docs = []
+    for doc in raw_docs:
+        name = doc.metadata.get("name")
+        if name not in seen_names:
+            seen_names.add(name)
+            docs.append(doc)
+        if len(docs) >= 6:
+            break
 
     llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.7)
 
@@ -49,12 +59,15 @@ def get_recommendations(student_input: str):
             f"\n--- CANDIDATE {i+1} ---\n"
             f"Name: {doc.metadata.get('name')}\n"
             f"Dept: {doc.metadata.get('department')}\n"
+            f"Page Type: {doc.metadata.get('page_type', 'unknown')} "
+            f"(research=方向, people=成员/本科生, join=招募, home=概述, teaching=课程)\n"
             f"Source: {doc.metadata.get('page_title')}\n"
             f"Context: {doc.page_content}\n"
         )
 
+    n_candidates = len(docs)
     prompt_template = """
-    You are a wise academic mentor. Analyze the synergy between a student's interest and the following 3 candidate professors.
+    You are a wise academic mentor. Analyze the synergy between a student's interest and the following {n_candidates} candidate professors.
 
     Student Interest: '{student_input}'
 
@@ -67,11 +80,12 @@ def get_recommendations(student_input: str):
     - MEDIUM SCORE (5-7): Valid connection but secondary.
     - LOW SCORE (1-4): The keyword appears ONLY in news, alumni, or publication lists.
 
-    For each of the 3 candidates, provide an alignment_score (1-10), a specific rationale (2 sentences), and an inspiring serendipity_note (1 sentence).
+    You MUST provide exactly {n_candidates} entries in the matches array — one per candidate, in order.
+    For each candidate, provide an alignment_score (1-10), a specific rationale (2 sentences), and an inspiring serendipity_note (1 sentence).
     """
 
     prompt = PromptTemplate(
-        input_variables=["student_input", "candidates_text"],
+        input_variables=["student_input", "candidates_text", "n_candidates"],
         template=prompt_template,
     )
 
@@ -82,6 +96,7 @@ def get_recommendations(student_input: str):
         output = chain.invoke({
             "student_input": student_input,
             "candidates_text": candidates_text,
+            "n_candidates": n_candidates,
         })
     except Exception as e:
         return [

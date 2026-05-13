@@ -57,17 +57,16 @@ def ingest_data():
             # Chunk the markdown content
             chunks = text_splitter.create_documents([content])
             
+            page_type = page.get('page_type', 'unknown')
+
             for chunk in chunks:
-                # Enrich metadata
                 chunk.metadata["name"] = prof_name
                 chunk.metadata["department"] = department
-                chunk.metadata["style"] = style
                 chunk.metadata["source_url"] = url
                 chunk.metadata["page_title"] = title
-                
-                # Prepend context to page_content so retrieval makes sense
-                # "Professor X (Research): ... content ..."
-                chunk.page_content = f"Professor {prof_name} - {title}\nSource: {url}\n\n{chunk.page_content}"
+                chunk.metadata["page_type"] = page_type
+
+                chunk.page_content = f"Professor {prof_name} [{page_type}] - {title}\nSource: {url}\n\n{chunk.page_content}"
                 
                 documents.append(chunk)
     

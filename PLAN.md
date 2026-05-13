@@ -1,5 +1,5 @@
 # M-Serendipity 项目计划
-**最后更新：2026-05-12**
+**最后更新：2026-05-14**
 
 ---
 
@@ -22,7 +22,7 @@
 | 结构化输出（Pydantic） | ✅ | 已有 |
 | Agent（Tool calling、ReAct） | ❌ | Phase 2 |
 | 多轮对话 + 记忆 | ❌ | Phase 2 |
-| 工程基础（数据管道） | 🟡 | Phase 1 完善 |
+| 工程基础（数据管道） | ✅ | Phase 1 |
 | LangGraph | ❌ | Phase 3（可选） |
 
 ---
@@ -31,22 +31,20 @@
 
 **目标**：35 位教授的 lab 数据进 vector_db，质量撑得起简历描述。
 
-**爬虫方案**：两层架构（professors_index.json → lab 主页 → 子页，最多1层）
+**爬虫方案**：Crawl4AI（Playwright）两层架构（professors_index.json → lab 主页 → 子页，最多1层）
 - 爬取目标：research / people / join / teaching 四类页面
-- 清洗：rules-based（去导航/图片/重复行）
-- 降级：403 / JS渲染 / 无lab URL → fallback 到 faculty profile 页
+- 清洗：rules-based（去导航/图片/重复行/空表格行）
+- 降级：403 / 无lab URL → fallback 到 faculty profile 页
 
-**各页面目标信息**：
+**Content Cap**：
 
-| page_type | 回答的问题 | 有效字符目标 |
-|-----------|-----------|------------|
-| research | 研究方向匹不匹配？ | 1000-5000 chars |
-| people | 带不带本科生？ | 500-1500 chars |
-| join | 有没有机会进去？ | 200-800 chars |
-| teaching | 辅助了解教授方向 | 200-1000 chars |
-| home | 总体定位兜底 | 500-2000 chars |
-
-**工程完善**：ingest.py 加 page_type metadata、backend.py 加 logging、数据质量检查
+| page_type | 回答的问题 | Cap |
+|-----------|-----------|-----|
+| research | 研究方向匹不匹配？ | 10000 chars |
+| home | 总体定位兜底 | 6000 chars |
+| people | 带不带本科生？ | 不截断 |
+| join | 有没有机会进去？ | 不截断 |
+| teaching | 辅助了解教授方向 | 不截断 |
 
 **简历描述**：Built a RAG pipeline covering 35+ professors using LangChain + ChromaDB + Gemini Embedding
 
@@ -59,6 +57,9 @@
 - **2a. Tool Calling**：search_professors / get_professor_by_name / get_recent_publications
 - **2b. ReAct Agent**：用 `create_react_agent` 替换现有 `prompt | structured_llm`
 - **2c. 多轮记忆**：`st.session_state` + `ConversationBufferMemory`
+- **2d. page_type 定向检索（备选）**：对学生 query 做分类（研究方向 / 本科机会 / 如何进入），
+  再用 ChromaDB `where={"page_type": ...}` filter 定向召回对应类型的 chunks。
+  依赖 query classifier + Agent tool routing 实现。
 
 Publications 策略：不预先 ingest，由 Agent 在学生追问时实时抓取最近5篇。
 
@@ -90,33 +91,28 @@ Phase 1（爬虫 → ingest）→ Phase 2a（工具）→ Phase 2b（ReAct）→
 
 ---
 
----
-
 # 工程日志
 
 ---
 
-## 当前状态（2026-05-12）
+## 当前状态（2026-05-14）
 
 - [x] 基础 RAG 管道（3 位教授，1674 chunks）
 - [x] 结构化输出、Gemini Embedding、Streamlit 前端
-- [x] 爬虫方案决策（Branch A：requests + markdownify + 规则清洗）
 - [x] 全站摸底（35 位教授，survey.py）
 - [x] professors_index.json 建立
-- [x] deep_scraper.py 完整重写（两层架构）
-- [x] 10 个 lab 验证，发现系统性噪声问题
-- [ ] **待决策：是否换 Crawl4AI（解决表格噪声 + JS 渲染）**
-- [ ] 跑全 35 个教授 + 重建 vector_db
-- [ ] Phase 2
+- [x] deep_scraper.py 完整重写（Crawl4AI，两层架构）
+- [x] 10 个 lab 验证 + 数据质量问题定位
+- [x] 表格噪声规则 fix（空行 / `| --- |` / 图片格）
+- [x] Content cap 设定（home=6000, research=10000, people/join/teaching 不截）
+- [x] page_type metadata 写入 vector_db
+- [x] backend 去重修复（k=12 raw → 按教授名去重 → 最多6人）
+- [x] backend prompt 修复（动态 n_candidates，消除 "Analysis unavailable"）
+- [x] 4 类查询初步测试，评分逻辑达标
 
 ---
 
 ## 2026-05-12 爬虫重写记录
-
-### 架构决策
-
-- Branch B（LLM 过滤层）被否定：LLM 在 ingest 层破坏 RAG 原文可信性，且手写 verbatim 不可靠
-- Branch A 确定：requests + markdownify + rules-based 清洗
 
 ### 35 lab 摸底结果
 
@@ -124,29 +120,59 @@ Phase 1（爬虫 → ingest）→ Phase 2a（工具）→ Phase 2b（ReAct）→
 |------|------|---------|
 | 正常可抓 | ~20 | 两层架构直接跑 |
 | 403 封锁 | 5 | fallback profile |
-| JS 渲染 | 2（CURLY / ICRL）| fallback profile |
+| JS 渲染 | ~10 | Crawl4AI 直接处理 |
 | 无 lab URL | 3 | fallback profile |
 
-### 10 lab 测试发现的数据质量问题
+### 10 lab 测试发现的数据质量问题（均已修复）
 
-| 问题 | 影响 lab | 严重程度 |
+| 问题 | 影响 lab | 修复方式 |
 |------|---------|---------|
-| HTML 布局表格 → 大量空 `\|  \|` 行 | Mavrogiannis、Ozay | 严重 |
-| 同 URL 存两次（不同 page_type） | Ozay、Skinner | 中等 |
-| 平台导航噪声（Google Sites / WordPress） | Robert、Du、Skinner | 中等 |
-| JS 渲染子页（DASC projects 36 chars） | Panagou | 中等 |
-| Alumni / Grants 段落（ARM 38K噪声） | Berenson、Robert | 严重 |
+| HTML 布局表格 → 大量空 `\|  \|` 行 | Mavrogiannis、Ozay | 正则过滤空表格行 |
+| 同 URL 存两次（不同 page_type） | Ozay、Skinner | 过滤与 homepage 相同的子页 URL |
+| 平台导航噪声（Google Sites / WordPress） | Robert、Du、Skinner | Crawl4AI DOM 解析天然过滤 |
+| JS 渲染子页内容为空 | Panagou projects | Crawl4AI 直接处理 |
+| Alumni / Grants 段落撑爆字符 | Berenson、Robert | research cap=10000 |
 
-### 代码修复记录
+---
 
-- depth 限制（`path_depth(url) <= homepage_depth + 1`）→ 防止扎进个人主页
-- `\bsearch\b` 词边界 → 防止误过滤 research 页
-- `re.match(r'^\[!\[', line)` → 过滤 linked image（`[![](img)](url)`）
-- `soup.title.string or ""` → 修复 title 为 None 时的 crash
+## 2026-05-12 Crawl4AI 迁移记录
 
-### 待决策
+迁移动因（requests 方案的瓶颈）：
 
-Crawl4AI vs 继续手写规则：
-- 表格噪声 + 平台导航 → Crawl4AI 的 PruningContentFilter 能系统性解决，手写规则是打地鼠
-- 代价：WSL 装 Playwright + Chromium ~300MB，有崩溃风险
-- 当前阻塞因素：不确定 WSL 能否稳定安装
+| lab | requests 结果 | Crawl4AI 结果 |
+|-----|-------------|--------------|
+| CURLY（Ghaffari，Google Sites） | 36 chars（JS渲染失败） | 3562 chars ✅ |
+| Mavrogiannis | 22368 chars（大量空表格） | 2985 chars 干净内容 ✅ |
+
+决策：全量迁移 Crawl4AI，不保留 requests 路径。PruningContentFilter 阈值不稳定，不启用，保留手写规则清洗层。
+
+---
+
+## 2026-05-14 Backend 修复
+
+**Bug 1: 同一教授重复出现**
+- 原因：`similarity_search(k=6)` 直接用，热门教授多个 chunk 占满所有 slot
+- 修法：`similarity_search(k=12)` → 按教授名去重 → 最多保留6个不同教授
+
+**Bug 2: "Analysis unavailable"**
+- 原因：prompt 写死 "following 3 candidate professors"，LLM 只返回3个 match
+- 修法：动态传 `n_candidates`，prompt 明确 "You MUST provide exactly {n_candidates} entries"
+
+### 初步测试结果
+
+| 问题类型 | 结果数 | 质量评估 |
+|---------|-------|---------|
+| HRI / 导航 | 3个 | Mavrogiannis 10/10 正确；结果少因 DB 只有10个教授 |
+| 哪些 lab 带本科生 | 5个 | Moore/Skinner/Gregg 前三，评分符合事实 |
+| 哪些 lab 在招人 | 6个 | Moore 10/10 正确；Ozay/Skinner 低分符合实际 |
+| 自主系统+本科机会 | 6个 | Panagou/Berenson 9/10，方向匹配 |
+
+DB 只有10个教授，全35个进去后区分度会显著提升。
+
+---
+
+## TODO
+
+- [ ] 深度测试：更多 query，边缘 case（跨学科、模糊描述），评分一致性
+- [ ] 跑全 35 个教授 + 重建 vector_db
+- [ ] Phase 2
