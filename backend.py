@@ -159,19 +159,49 @@ def get_recommendations(student_input: str) -> str:
     return content
 
 
+def trace_recommendations(student_input: str):
+    """Debug mode: prints full agent reasoning trace."""
+    from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
+
+    global _agent
+    if _agent is None:
+        _agent = build_agent()
+
+    result = _agent.invoke(
+        {"messages": [("user", student_input)]},
+        config={"recursion_limit": 15}
+    )
+
+    msgs = result["messages"]
+    print(f"Total messages: {len(msgs)}\n")
+
+    for i, msg in enumerate(msgs):
+        if isinstance(msg, HumanMessage):
+            print(f"[0] STUDENT: {msg.content}\n")
+
+        elif isinstance(msg, AIMessage):
+            if hasattr(msg, "tool_calls") and msg.tool_calls:
+                for tc in msg.tool_calls:
+                    print(f"[{i}] LLM → {tc['name']}({tc['args']})")
+            else:
+                content = msg.content
+                if isinstance(content, list):
+                    content = "\n".join(
+                        b.get("text", "") for b in content
+                        if isinstance(b, dict) and b.get("type") == "text"
+                    )
+                print(f"[{i}] FINAL ANSWER:\n{content}")
+
+        elif isinstance(msg, ToolMessage):
+            preview = msg.content[:300].replace("\n", " ")
+            print(f"[{i}] {msg.name} returned: {preview}...\n")
+
+
 if __name__ == "__main__":
+    import sys
     load_environment()
-    _agent = build_agent()
 
-    test_queries = [
-        "I'm a freshman interested in human-robot interaction. I have Python skills but no research experience.",
-        "I want to work on motion planning and robotic manipulation.",
-        "Which labs actively recruit undergraduate students?",
-    ]
+    query = sys.argv[1] if len(sys.argv) > 1 else \
+        "I'm a freshman interested in HRI, Python skills, no research experience."
 
-    for q in test_queries:
-        print(f"\n{'='*60}")
-        print(f"QUERY: {q}")
-        print("="*60)
-        result = get_recommendations(q)
-        print(result)
+    trace_recommendations(query)
