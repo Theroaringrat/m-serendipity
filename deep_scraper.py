@@ -255,10 +255,11 @@ async def scrape_one(crawler, prof):
     }
 
 
-async def scrape_all(slugs=None):
+async def scrape_all(slugs=None, checkpoint_prefix=None):
     """
     scrape_all()           → 爬全部教授
     scrape_all(["slug1"])  → 只爬指定教授（调试用）
+    checkpoint_prefix      → 中途保存时的前缀数据（不覆盖已有数据）
     """
     with open(INDEX_FILE) as f:
         index = json.load(f)
@@ -273,9 +274,10 @@ async def scrape_all(slugs=None):
             results.append(result)
 
             if (i + 1) % 5 == 0 or (i + 1) == len(index):
+                save_data = (checkpoint_prefix or []) + results
                 with open(OUTPUT_FILE, "w") as f:
-                    json.dump(results, f, indent=2, ensure_ascii=False)
-                print(f"\n  [保存] {i+1}/{len(index)} 已写入 {OUTPUT_FILE}")
+                    json.dump(save_data, f, indent=2, ensure_ascii=False)
+                print(f"\n  [保存] {i+1}/{len(index)} 已写入 {OUTPUT_FILE}（共 {len(save_data)} 个教授）")
 
             await asyncio.sleep(1)
 
@@ -284,15 +286,27 @@ async def scrape_all(slugs=None):
 
 
 if __name__ == "__main__":
-    asyncio.run(scrape_all(slugs=[
-        "nima-fazeli",
-        "dimitra-panagou",
-        "dmitry-berenson",
-        "katie-skinner",
-        "robert-gregg",
-        "necmiye-ozay",
-        "lionel-robert",
-        "christoforos-mavrogiannis",
-        "talia-moore",
-        "xiaoxiao-du",
-    ]))
+    import os
+
+    # 加载已有数据，找出还没爬的
+    existing = []
+    if os.path.exists(OUTPUT_FILE):
+        with open(OUTPUT_FILE) as f:
+            existing = json.load(f)
+
+    scraped_slugs = {p["slug"] for p in existing}
+
+    with open(INDEX_FILE) as f:
+        index = json.load(f)
+    remaining_slugs = [p["slug"] for p in index if p["slug"] not in scraped_slugs]
+
+    if not remaining_slugs:
+        print("所有教授已爬完。")
+    else:
+        print(f"剩余 {len(remaining_slugs)} 个教授待爬：{remaining_slugs}")
+
+        async def run():
+            await scrape_all(slugs=remaining_slugs, checkpoint_prefix=existing)
+            print(f"\n合并完成，结果已实时保存至 {OUTPUT_FILE}")
+
+        asyncio.run(run())
