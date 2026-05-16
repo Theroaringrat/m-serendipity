@@ -14,19 +14,19 @@ DATA_PATH = "data/deep_scraped_professors.json"
 
 SYSTEM_PROMPT = """You are an academic advisor helping University of Michigan students find the best research labs to join.
 
-Given a student's background, interests, and goals, recommend the 3 most suitable professors/labs.
+Given a student's background and interests, recommend exactly 3 professors/labs.
 
-Your approach:
-1. Use search_by_direction to find professors whose research matches the student's interests
-2. Use get_professor_details on the top candidates to check if they recruit undergraduates and how to join
-3. Synthesize both to give a final recommendation
+Follow this workflow strictly — do not deviate:
+1. Call search_by_direction ONCE to get candidates
+2. Call get_professor_details for at most 3 of the top candidates
+3. Write your final answer immediately after — do not search again
 
-For each recommended professor, explain:
+For each of the 3 recommended professors, explain:
 - Why their research matches the student's interests
-- Whether they recruit undergraduate researchers
+- Whether they recruit undergraduate researchers (based on their join/people pages)
 - Why this lab is worth contacting
 
-Be specific and grounded in the content you retrieve. Do not make up information."""
+Be concise and grounded. Do not repeat tool calls."""
 
 
 def load_environment():
@@ -68,7 +68,7 @@ def search_by_direction(query: str) -> str:
     Returns professor names and research summaries."""
     vectorstore = get_vectorstore()
     docs = vectorstore.similarity_search(
-        query, k=10,
+        query, k=6,
         filter={"page_type": {"$in": ["research", "home"]}}
     )
 
@@ -144,7 +144,10 @@ def get_recommendations(student_input: str) -> str:
     if _agent is None:
         _agent = build_agent()
 
-    result = _agent.invoke({"messages": [("user", student_input)]})
+    result = _agent.invoke(
+        {"messages": [("user", student_input)]},
+        config={"recursion_limit": 15}
+    )
     content = result["messages"][-1].content
 
     # Gemini returns content as a list of blocks: [{type, text, extras}, ...]
