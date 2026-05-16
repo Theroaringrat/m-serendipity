@@ -1,5 +1,5 @@
 # M-Serendipity 项目计划
-**最后更新：2026-05-14**
+**最后更新：2026-05-16**
 
 ---
 
@@ -20,10 +20,10 @@
 |---------|------|---------|
 | RAG（LangChain、ChromaDB、Embedding） | ✅ | Phase 1 |
 | 结构化输出（Pydantic） | ✅ | 已有 |
-| Agent（Tool calling、ReAct） | ❌ | Phase 2 |
-| 多轮对话 + 记忆 | ❌ | Phase 2 |
+| Agent（Tool calling、ReAct） | ✅ | Phase 2a |
+| 多轮对话 + 记忆 | ❌ | Phase 2b |
 | 工程基础（数据管道） | ✅ | Phase 1 |
-| LangGraph | ❌ | Phase 3（可选） |
+| LangGraph | ✅ | Phase 2a |
 
 ---
 
@@ -54,7 +54,7 @@
 
 **目标**：从单步 RAG Pipeline 升级为 ReAct Agent，让 LLM 主动决定搜索策略。
 
-### 2a. 两个工具 + ReAct Agent（当前阶段）
+### 2a. 两个工具 + ReAct Agent ✅
 
 **核心设计**：控制流从固定 pipeline 改为 Agent 驱动的循环——每步执行完 LLM 自己决定下一步。
 
@@ -92,10 +92,9 @@
 
 不预先 ingest，追问时 Agent 实时抓取最近5篇论文。
 
-### 2d. LangGraph 重写（可选，Phase 3）
+### 2d. LangGraph 重写（已完成，集成在 2a）
 
-把 AgentExecutor 换成 LangGraph 显式状态图，获得更精确的流程控制和可观测性。
-当前 AgentExecutor 够用，等 Agent 逻辑复杂后再迁移。
+使用 `langgraph.prebuilt.create_react_agent` 替代 AgentExecutor，原生支持 Gemini function calling，无需 text-parsing ReAct。
 
 ---
 
@@ -116,7 +115,7 @@ LangGraph 重写 Agent 流程。Phase 1 + 2 稳定后根据面试反馈决定。
 ## 执行顺序
 
 ```
-Phase 1（爬虫 → ingest）✅ → Phase 2a（两工具 + ReAct）← 当前 → Phase 2b（追问）→ Phase 2c（Publications）→ Phase 3/LangGraph（可选）
+Phase 1（爬虫 → ingest）✅ → Phase 2a（两工具 + ReAct）✅ → Phase 2b（追问）← 当前 → Phase 2c（Publications）→ Phase 3（可选）
 ```
 
 每一步都是可独立交付的节点。
@@ -203,18 +202,43 @@ DB 只有10个教授，全35个进去后区分度会显著提升。
 
 ---
 
-## 2026-05-16 Phase 1 完成 + Phase 2 启动
+## 2026-05-16 Phase 1 完成 + Phase 2a 完成
 
+**Phase 1 收尾：**
 - [x] 全 35 个教授爬取完成（deep_scraped_professors.json）
 - [x] vector_db 重建（500 chunks，35 个教授）
 - [x] 全量测试通过（HRI / manipulation / 本科招生 / 自主系统 4 类查询）
 - [x] crawl4ai-migration merge 到 main，推送 GitHub
-- [ ] Phase 2a：两工具 + ReAct Agent（branch: phase2-agent，进行中）
+
+**Phase 2a 完成（branch: phase2-agent）：**
+- [x] `search_by_direction` 工具：向量检索，filter page_type in [research, home]，k=6，按教授名去重
+- [x] `get_professor_details` 工具：直接从 JSON 取，返回所有 scraped_pages，每页 cap 3000 chars
+- [x] `create_react_agent`（LangGraph）替换旧 Pydantic chain，原生 Gemini function calling
+- [x] `trace_recommendations()` 调试函数，打印完整 Agent 推理链
+- [x] 3 类查询全量测试通过，每次 ~10-20s
+
+**Agent 决策行为分析（今日发现）：**
+
+Agent 存在 "snowball search" 行为——读完教授详情页后，从内容里发现新教授名字（如合作者、co-advisor），追加第二次 search。
+
+具体案例（HRI 查询）：
+- 第一次 search → Kathuria、Mavrogiannis、Ghaffari
+- 读 Kathuria/Ghaffari 详情时发现 "X. Jessie Yang"（两处 co-advisor 提及）
+- 追加 search → 找到 Xi Jessie Yang、Lionel Robert
+- 最终推荐：Xi Jessie Yang、Mavrogiannis、Lionel Robert
+
+决策质量评估：
+- 换入 Xi Jessie Yang：合理（ICRL = HRI 核心 lab，两处独立线索）
+- 换入 Lionel Robert：有问题（信息系统视角的 HRI，非技术方向；其 research 页面内容几乎为空）
+- 违反 system prompt "search ONCE" 约束：LLM 权衡"遵守规则 vs 更好答案"，选了后者
+
+---
 
 ## TODO
 
-- [ ] 实现 search_by_direction 工具
-- [ ] 实现 get_professor_details 工具
-- [ ] create_react_agent + AgentExecutor 替换 backend.py 的 chain
-- [ ] 测试 Agent 动态路由行为
+- [x] 实现 search_by_direction 工具
+- [x] 实现 get_professor_details 工具
+- [x] create_react_agent 替换 backend.py 的 chain
+- [x] Agent trace 调试工具（trace_recommendations）
+- [ ] 更深入测试 Agent 决策逻辑（snowball search 行为，Lionel Robert 质量问题，prompt 约束有效性）
 - [ ] Phase 2b：多轮追问
