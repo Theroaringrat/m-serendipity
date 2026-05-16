@@ -145,7 +145,15 @@ def get_recommendations(student_input: str) -> str:
         _agent = build_agent()
 
     result = _agent.invoke({"messages": [("user", student_input)]})
-    return result["messages"][-1].content
+    content = result["messages"][-1].content
+
+    # Gemini returns content as a list of blocks: [{type, text, extras}, ...]
+    if isinstance(content, list):
+        return "\n".join(
+            block.get("text", "") for block in content
+            if isinstance(block, dict) and block.get("type") == "text"
+        )
+    return content
 
 
 if __name__ == "__main__":
