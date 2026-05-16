@@ -1,14 +1,32 @@
+import json
 import os
-from typing import List
 
-import streamlit as st
 import toml
+import streamlit as st
 from langchain_chroma import Chroma
-from langchain_core.prompts import PromptTemplate
+from langchain_core.messages import SystemMessage
+from langchain_core.tools import tool
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-from pydantic import BaseModel
+from langgraph.prebuilt import create_react_agent
 
 DB_DIR = "vector_db"
+DATA_PATH = "data/deep_scraped_professors.json"
+
+SYSTEM_PROMPT = """You are an academic advisor helping University of Michigan students find the best research labs to join.
+
+Given a student's background, interests, and goals, recommend the 3 most suitable professors/labs.
+
+Your approach:
+1. Use search_by_direction to find professors whose research matches the student's interests
+2. Use get_professor_details on the top candidates to check if they recruit undergraduates and how to join
+3. Synthesize both to give a final recommendation
+
+For each recommended professor, explain:
+- Why their research matches the student's interests
+- Whether they recruit undergraduate researchers
+- Why this lab is worth contacting
+
+Be specific and grounded in the content you retrieve. Do not make up information."""
 
 
 def load_environment():
@@ -23,119 +41,126 @@ def load_environment():
                 print("Warning: GOOGLE_API_KEY not found.")
 
 
-class ProfessorMatch(BaseModel):
-    alignment_score: int
-    rationale: str
-    serendipity_note: str
+_professors_data = None
+_vectorstore = None
 
 
-class RecommendationOutput(BaseModel):
-    matches: List[ProfessorMatch]
+def get_professors_data():
+    global _professors_data
+    if _professors_data is None:
+        with open(DATA_PATH) as f:
+            _professors_data = json.load(f)
+    return _professors_data
 
 
-def get_recommendations(student_input: str):
-    load_environment()
+def get_vectorstore():
+    global _vectorstore
+    if _vectorstore is None:
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
+        _vectorstore = Chroma(persist_directory=DB_DIR, embedding_function=embeddings)
+    return _vectorstore
 
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
-    vectorstore = Chroma(persist_directory=DB_DIR, embedding_function=embeddings)
 
-    raw_docs = vectorstore.similarity_search(student_input, k=12)
-
-    seen_names = set()
-    docs = []
-    for doc in raw_docs:
-        name = doc.metadata.get("name")
-        if name not in seen_names:
-            seen_names.add(name)
-            docs.append(doc)
-        if len(docs) >= 6:
-            break
-
-    llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.7)
-
-    candidates_text = ""
-    for i, doc in enumerate(docs):
-        candidates_text += (
-            f"\n--- CANDIDATE {i+1} ---\n"
-            f"Name: {doc.metadata.get('name')}\n"
-            f"Dept: {doc.metadata.get('department')}\n"
-            f"Page Type: {doc.metadata.get('page_type', 'unknown')} "
-            f"(research=方向, people=成员/本科生, join=招募, home=概述, teaching=课程)\n"
-            f"Source: {doc.metadata.get('page_title')}\n"
-            f"Context: {doc.page_content}\n"
-        )
-
-    n_candidates = len(docs)
-    prompt_template = """
-    You are a wise academic mentor. Analyze the synergy between a student's interest and the following {n_candidates} candidate professors.
-
-    Student Interest: '{student_input}'
-
-    Candidates:
-    {candidates_text}
-
-    SCORING RUBRIC:
-    - SKEPTICAL DEFAULT: Assume the interest is TANGENTIAL (Low Score) unless proven otherwise.
-    - HIGH SCORE (8-10): The interest is a CENTRAL THEME in Research Interests or Project Titles.
-    - MEDIUM SCORE (5-7): Valid connection but secondary.
-    - LOW SCORE (1-4): The keyword appears ONLY in news, alumni, or publication lists.
-
-    You MUST provide exactly {n_candidates} entries in the matches array — one per candidate, in order.
-    For each candidate, provide an alignment_score (1-10), a specific rationale (2 sentences), and an inspiring serendipity_note (1 sentence).
-    """
-
-    prompt = PromptTemplate(
-        input_variables=["student_input", "candidates_text", "n_candidates"],
-        template=prompt_template,
+@tool
+def search_by_direction(query: str) -> str:
+    """Search for professors by research direction or topic.
+    Use this to find professors whose research matches a student's interests.
+    Returns professor names and research summaries."""
+    vectorstore = get_vectorstore()
+    docs = vectorstore.similarity_search(
+        query, k=10,
+        filter={"page_type": {"$in": ["research", "home"]}}
     )
 
-    structured_llm = llm.with_structured_output(RecommendationOutput)
-    chain = prompt | structured_llm
+    if not docs:
+        return "No results found."
 
-    try:
-        output = chain.invoke({
-            "student_input": student_input,
-            "candidates_text": candidates_text,
-            "n_candidates": n_candidates,
-        })
-    except Exception as e:
-        return [
-            {
-                "name": doc.metadata.get("name"),
-                "department": doc.metadata.get("department"),
-                "alignment_score": 0,
-                "rationale": f"Error: {e}",
-                "note": "Service unavailable.",
-                "source_url": doc.metadata.get("source_url", "#"),
-                "page_title": doc.metadata.get("page_title", "Profile"),
-                "research_interests": doc.page_content,
-            }
-            for doc in docs
-        ]
-
+    seen = set()
     results = []
-    for i, doc in enumerate(docs):
-        match = output.matches[i] if i < len(output.matches) else None
-        results.append({
-            "name": doc.metadata.get("name"),
-            "department": doc.metadata.get("department"),
-            "alignment_score": match.alignment_score if match else 5,
-            "rationale": match.rationale if match else "Analysis unavailable.",
-            "note": match.serendipity_note if match else "Connection found.",
-            "source_url": doc.metadata.get("source_url", "#"),
-            "page_title": doc.metadata.get("page_title", "Profile"),
-            "research_interests": doc.page_content,
-        })
+    for doc in docs:
+        name = doc.metadata.get("name", "Unknown")
+        if name in seen:
+            continue
+        seen.add(name)
+        dept = doc.metadata.get("department", "")
+        snippet = doc.page_content[:500]
+        results.append(f"Professor: {name} ({dept})\n{snippet}")
 
-    return results
+    return "\n\n---\n\n".join(results)
+
+
+@tool
+def get_professor_details(name: str) -> str:
+    """Get complete information about a specific professor: their research focus,
+    whether they recruit undergraduates, and how to join their lab.
+    Use this after identifying promising candidates from search_by_direction."""
+    data = get_professors_data()
+
+    name_lower = name.lower().strip()
+    professor = None
+    for p in data:
+        p_name_lower = p["name"].lower()
+        if name_lower in p_name_lower or p_name_lower in name_lower:
+            professor = p
+            break
+
+    if not professor:
+        # Try matching by last name only
+        last_name = name_lower.split()[-1]
+        for p in data:
+            if last_name in p["name"].lower():
+                professor = p
+                break
+
+    if not professor:
+        return f"Professor '{name}' not found. Available professors: {', '.join(p['name'] for p in data[:10])}..."
+
+    pages = professor.get("scraped_pages", [])
+    if not pages:
+        return f"{professor['name']}: No detailed page content available (only index data)."
+
+    sections = [f"# {professor['name']} ({professor.get('department', 'Robotics')})\n"]
+    for page in pages:
+        page_type = page.get("page_type", "unknown")
+        title = page.get("title", page_type)
+        content = page.get("content", "")[:3000]
+        sections.append(f"## [{page_type.upper()}] {title}\n{content}")
+
+    return "\n\n".join(sections)
+
+
+_agent = None
+
+
+def build_agent():
+    load_environment()
+    llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.3)
+    tools = [search_by_direction, get_professor_details]
+    return create_react_agent(llm, tools, prompt=SystemMessage(content=SYSTEM_PROMPT))
+
+
+def get_recommendations(student_input: str) -> str:
+    global _agent
+    if _agent is None:
+        _agent = build_agent()
+
+    result = _agent.invoke({"messages": [("user", student_input)]})
+    return result["messages"][-1].content
 
 
 if __name__ == "__main__":
-    test_input = "I am interested in how machines perceive time and memory."
-    recs = get_recommendations(test_input)
-    for rec in recs:
-        print(f"--- {rec['name']} ---")
-        print(f"Score: {rec['alignment_score']}/10")
-        print(f"Rationale: {rec['rationale']}")
-        print(f"Note: {rec['note']}")
-        print()
+    load_environment()
+    _agent = build_agent()
+
+    test_queries = [
+        "I'm a freshman interested in human-robot interaction. I have Python skills but no research experience.",
+        "I want to work on motion planning and robotic manipulation.",
+        "Which labs actively recruit undergraduate students?",
+    ]
+
+    for q in test_queries:
+        print(f"\n{'='*60}")
+        print(f"QUERY: {q}")
+        print("="*60)
+        result = get_recommendations(q)
+        print(result)

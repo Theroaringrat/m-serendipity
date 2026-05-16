@@ -52,18 +52,50 @@
 
 ## Phase 2：Agent 能力
 
-**目标**：从单步 RAG 升级为有工具调用和记忆的 Agent。
+**目标**：从单步 RAG Pipeline 升级为 ReAct Agent，让 LLM 主动决定搜索策略。
 
-- **2a. Tool Calling**：search_professors / get_professor_by_name / get_recent_publications
-- **2b. ReAct Agent**：用 `create_react_agent` 替换现有 `prompt | structured_llm`
-- **2c. 多轮记忆**：`st.session_state` + `ConversationBufferMemory`
-- **2d. page_type 定向检索（备选）**：对学生 query 做分类（研究方向 / 本科机会 / 如何进入），
-  再用 ChromaDB `where={"page_type": ...}` filter 定向召回对应类型的 chunks。
-  依赖 query classifier + Agent tool routing 实现。
+### 2a. 两个工具 + ReAct Agent（当前阶段）
 
-Publications 策略：不预先 ingest，由 Agent 在学生追问时实时抓取最近5篇。
+**核心设计**：控制流从固定 pipeline 改为 Agent 驱动的循环——每步执行完 LLM 自己决定下一步。
 
-**简历描述**：Implemented a multi-tool ReAct agent with conversation memory for academic advisor use case
+**Tool 1: `search_by_direction(query: str)`**
+- 向量检索，filter `page_type in [research, home]`
+- 返回：教授名单 + 研究方向摘要
+- 作用：让 Agent 找方向匹配的候选人
+
+**Tool 2: `get_professor_details(name: str)`**
+- 直接从 `deep_scraped_professors.json` 按名字取，不走向量检索
+- 返回：该教授所有页面（research + join + people）完整内容
+- 作用：让 Agent 对具体候选人做深度核查（招不招本科生、具体研究内容）
+
+**Agent 流程**（运行时由 LLM 动态决定）：
+```
+学生输入 → Agent 推理搜索策略
+  → search_by_direction(...)   # 找方向候选
+  → get_professor_details(...) # 对感兴趣的教授深查
+  → 反思：信息够了吗？
+  → Final Answer
+```
+
+输出：自由文本推荐，UI 直接展示。结构化卡片 UI 留到后续迭代。
+
+**简历描述**：Replaced single-step RAG with a multi-tool ReAct agent; LLM dynamically routes between semantic search and direct lookup tools
+
+---
+
+### 2b. 多轮对话追问（后续）
+
+学生问"为什么 Mavrogiannis 排第一"或"他招本科生吗"，Agent 实时调工具回答。
+依赖：`st.session_state` + `ConversationBufferMemory`
+
+### 2c. Publications 实时抓取（后续）
+
+不预先 ingest，追问时 Agent 实时抓取最近5篇论文。
+
+### 2d. LangGraph 重写（可选，Phase 3）
+
+把 AgentExecutor 换成 LangGraph 显式状态图，获得更精确的流程控制和可观测性。
+当前 AgentExecutor 够用，等 Agent 逻辑复杂后再迁移。
 
 ---
 
@@ -84,7 +116,7 @@ LangGraph 重写 Agent 流程。Phase 1 + 2 稳定后根据面试反馈决定。
 ## 执行顺序
 
 ```
-Phase 1（爬虫 → ingest）→ Phase 2a（工具）→ Phase 2b（ReAct）→ Phase 2c（记忆）→ Phase 3（可选）
+Phase 1（爬虫 → ingest）✅ → Phase 2a（两工具 + ReAct）← 当前 → Phase 2b（追问）→ Phase 2c（Publications）→ Phase 3/LangGraph（可选）
 ```
 
 每一步都是可独立交付的节点。
@@ -171,8 +203,18 @@ DB 只有10个教授，全35个进去后区分度会显著提升。
 
 ---
 
+## 2026-05-16 Phase 1 完成 + Phase 2 启动
+
+- [x] 全 35 个教授爬取完成（deep_scraped_professors.json）
+- [x] vector_db 重建（500 chunks，35 个教授）
+- [x] 全量测试通过（HRI / manipulation / 本科招生 / 自主系统 4 类查询）
+- [x] crawl4ai-migration merge 到 main，推送 GitHub
+- [ ] Phase 2a：两工具 + ReAct Agent（branch: phase2-agent，进行中）
+
 ## TODO
 
-- [ ] 深度测试：更多 query，边缘 case（跨学科、模糊描述），评分一致性
-- [ ] 跑全 35 个教授 + 重建 vector_db
-- [ ] Phase 2
+- [ ] 实现 search_by_direction 工具
+- [ ] 实现 get_professor_details 工具
+- [ ] create_react_agent + AgentExecutor 替换 backend.py 的 chain
+- [ ] 测试 Agent 动态路由行为
+- [ ] Phase 2b：多轮追问

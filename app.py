@@ -66,53 +66,10 @@ with col1:
         else:
             st.warning("Please reveal your thoughts first.")
 
-# Results & Visualization
+# Results
 if 'recommendations' in st.session_state:
     recs = st.session_state['recommendations']
-    
-    with col1:
-        st.subheader("Serendipity Notes")
-        for rec in recs:
-            # Calculate alignment color
-            score = rec.get('alignment_score', 0)
-            
-            with st.container():
-                st.markdown(f"""
-                <div class="serendipity-card">
-                    <h3>{rec['name']}</h3>
-                    <p><strong>{rec['department']}</strong></p>
-                    <p style="font-size: 0.9em; color: #a0a0a0;">
-                        Source: <a href="{rec['source_url']}" target="_blank" style="color: #c0a062;">{rec['page_title']}</a>
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                st.write("**Alignment Score:**")
-                st.progress(score / 10)
-                
-                st.markdown(f"**Why:** {rec['rationale']}")
-                st.markdown(f"<p class='quote'>“{rec['note']}”</p>", unsafe_allow_html=True)
-                st.markdown("---")
 
-    with col2:
-        st.subheader("Intellectual Constellation")
-        
-        # Build Graph
-        nodes = []
-        edges = []
-        
-        # Central Student Node
-        nodes.append(Node(id="Student", label="You", size=25, color="#c0a062"))
-        
-        for rec in recs:
-            # Professor Node
-            prof_id = rec['name']
-            nodes.append(Node(id=prof_id, label=prof_id, size=20, color="#5a3e36"))
-            edges.append(Edge(source="Student", target=prof_id, label="synergy", color="#808080"))
-            
-        config = Config(width=700, height=600, directed=True, 
-                        physics=True, hiererchy=False,
-                        nodeHighlightBehavior=True, highlightColor="#c0a062",
-                        collapsible=False)
-        
-        return_value = agraph(nodes=nodes, edges=edges, config=config)
+    with col1:
+        st.subheader(“Serendipity Notes”)
+        st.markdown(recs)
