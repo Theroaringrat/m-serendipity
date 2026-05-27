@@ -156,7 +156,7 @@
     "slug": "xiaonan-sean-huang",
     "profile_url": "https://robotics.umich.edu/people/faculty/xiaonan-sean-huang/",
     "lab_url": "https://soft.robotics.umich.edu/",
-    "scrape_status": "blocked_403",
+    "scrape_status": "ok",
     "last_scraped": null
   },
   {
@@ -219,7 +219,7 @@
     "name": "Elliott Rouse",
     "slug": "elliott-rouse",
     "profile_url": "https://robotics.umich.edu/people/faculty/elliott-rouse/",
-    "lab_url": "https://neurobionics.engin.umich.edu/",
+    "lab_url": "https://neurobionics.robotics.umich.edu/",
     "scrape_status": "blocked_403",
     "last_scraped": null
   },
@@ -243,8 +243,8 @@
     "name": "Yulun Tian",
     "slug": "yulun-tian",
     "profile_url": "https://robotics.umich.edu/people/faculty/yulun-tian/",
-    "lab_url": null,
-    "scrape_status": "no_lab_url",
+    "lab_url": "https://ssi.robotics.umich.edu",
+    "scrape_status": "ok",
     "last_scraped": null
   },
   {

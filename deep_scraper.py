@@ -101,7 +101,7 @@ def filter_links(links, base_domain, homepage_url):
     输入：[(url, link_text), ...]
     输出：[(url, page_type), ...] 同域名 + 关键词匹配 + 非 skip + 深度合理
     """
-    max_depth = path_depth(homepage_url) + 1
+    max_depth = path_depth(homepage_url) + 2  # +2 兼容 /index.php/xxx/ 类 WordPress 路径
     results = []
     seen_urls = set()
 
@@ -162,13 +162,23 @@ async def scrape_lab_site(crawler, lab_url):
     print(f"  → 抓主页: {lab_url}")
     result = await crawler.arun(url=lab_url)
 
+    # 失败时重试一次（JS 渲染偶发失败）
     if not result.success:
+        print(f"  [RETRY] 首次失败，2秒后重试: {lab_url}")
+        await asyncio.sleep(2)
+        result = await crawler.arun(url=lab_url)
+
+    # 不完全依赖 result.success：
+    # 某些网站（302 redirect / 共享 crawler 偶发问题）即使内容完整也标 success=False
+    # 只要能拿到有效内容就继续，否则才真正放弃
+    raw_content = clean_markdown(get_markdown(result))
+    if not result.success and len(raw_content) < MIN_CONTENT_CHARS:
         return [], "fetch_failed"
 
     pages = []
 
-    # 主页
-    content = clean_markdown(get_markdown(result))
+    # 主页（复用已计算的 raw_content，避免重复解析）
+    content = raw_content
     cap = CONTENT_CAPS.get("home")
     if cap and len(content) > cap:
         content = content[:cap]
@@ -222,9 +232,9 @@ async def scrape_one(crawler, prof):
 
     print(f"\n[{name}] status={status}")
 
-    # blocked_403 / no_lab_url → 直接 fallback（Crawl4AI 也绕不过去）
-    # js_rendered 现在由 Crawl4AI 处理，不再直接 fallback
-    if status in ("blocked_403", "no_lab_url") or not prof.get("lab_url"):
+    # no_lab_url → 直接 fallback，没有可爬的目标
+    # blocked_403 / js_rendered 都让 Crawl4AI 先试，失败再 fallback
+    if status == "no_lab_url" or not prof.get("lab_url"):
         pages = await fallback_profile(crawler, prof["profile_url"])
         fallback_used = True
     else:
